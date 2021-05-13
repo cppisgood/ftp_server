@@ -8,15 +8,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 project(net VERSION 1.0)
 
 add_subdirectory(extern)
+add_subdirectory(include)
 
-add_executable(${PROJECT_NAME} tmp.cpp)
+add_executable(
+    servcer.zmm
+    server.cpp
+)
+
+add_executable(
+    cilent.zmm
+    cilent.cpp
+)
+
+foreach(x servcer.zmm cilent.zmm)
+    # target_include_directories(
+    #     ${x} PUBLIC
+    #     ${PROJECT_SOURCE_DIR}/include
+    # )
+    target_link_libraries(
+        ${x} PRIVATE
+        asio
+        lib_include
+        pthread
+    )
+    
+endforeach(x)
+
 
 # file(GLOB_RE)
-
-target_include_directories(
-    ${PROJECT_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
-)
-target_link_libraries(
-    ${PROJECT_NAME} PRIVATE asio
-)
