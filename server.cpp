@@ -89,7 +89,13 @@ int main() {
     //     socket.write_some(asio::buffer("b"));
     //     // debug(buf);
     // }
-    asio::ip::tcp::resolver res(context);
-    auto ed = *res.resolve("127.0.0.1", "80");
-
+    // asio::ip::tcp::resolver res(context);
+    // auto ed = *res.resolve("127.0.0.1", "80");
+    Server s(context, "127.0.0.1", 21);
+    s.start();
+    const int thread_num = std::thread::hardware_concurrency();
+    LOG(thread_num);
+    std::vector<std::thread> threads(thread_num);
+    for (auto& t : threads) t = std::thread([&context]() {context.run();});
+    for (auto& t : threads) t.join();
 }

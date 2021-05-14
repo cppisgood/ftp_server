@@ -11,7 +11,7 @@ add_subdirectory(extern)
 add_subdirectory(include)
 
 add_executable(
-    servcer.zmm
+    server.zmm
     server.cpp
 )
 
@@ -20,7 +20,7 @@ add_executable(
     cilent.cpp
 )
 
-foreach(x servcer.zmm cilent.zmm)
+foreach(x server.zmm cilent.zmm)
     # target_include_directories(
     #     ${x} PUBLIC
     #     ${PROJECT_SOURCE_DIR}/include
