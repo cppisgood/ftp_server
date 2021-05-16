@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/zmm/Documents/code/cpp/ftp_server/build",
-  "command": "/usr/bin/c++  -I/home/zmm/Documents/code/cpp/ftp_server/include -I/home/zmm/Documents/code/cpp/ftp_server/extern/asio-1.18.1/include -std=gnu++2a -o CMakeFiles/net.dir/tmp.cpp.o -c /home/zmm/Documents/code/cpp/ftp_server/tmp.cpp",
-  "file": "/home/zmm/Documents/code/cpp/ftp_server/tmp.cpp"
-}
-]
