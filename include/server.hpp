@@ -19,7 +19,7 @@
 #include <unistd.h>
 #include <vector>
 #include <queue>
-#include <cctype>
+#include <filesystem>
 #include <tools.hpp>
 
 enum class Status {
@@ -32,7 +32,9 @@ enum class Message_type {
     USER,
     PASS,
     SYST,
-    QUIT
+    QUIT,
+    PORT,
+    LIST,
 };
 
 // enum class Response_type {
@@ -85,6 +87,8 @@ Message<T> parse(const std::string raw_msg) {
     else if (type == "PASS") msg.type = Message_type::PASS;
     else if (type == "SYST") msg.type = Message_type::SYST;
     else if (type == "QUIT") msg.type = Message_type::QUIT;
+    else if (type == "LIST") msg.type = Message_type::LIST;
+    else if (type == "PORT") msg.type = Message_type::PORT;
     else {
         // TODO
     }
@@ -131,13 +135,18 @@ void handle_command(std::shared_ptr<User> user, Message<T> msg);
 
 
 class User : public std::enable_shared_from_this<User> {
-    std::string buf;
-    asio::ip::tcp::socket socket;
-    std::string username;
-    // std::shared_ptr<Connection> con;
-    Status status = Status::WAITING_USER;
 public:
-    User(asio::io_context& context) : socket(context) {
+    std::string buf;
+    asio::io_context& context;
+    asio::ip::tcp::socket socket;
+    asio::ip::tcp::endpoint data_endpoint;
+    std::string username;
+    std::filesystem::path current_path;
+    Status status = Status::WAITING_USER;
+    
+    User(asio::io_context& context_) :
+        context(context_),
+        socket(context_) {
         buf.resize(1024);
     }
 
@@ -250,6 +259,7 @@ public:
     }
 
     void disconnect() {
+        LOG(__PRETTY_FUNCTION__);
         // TODO
     }
 
@@ -262,6 +272,48 @@ void handle_syst(std::shared_ptr<User> user) {
     user->write("215 UNIX Type: L8\n");
 }
 
+void handle_port(std::shared_ptr<User> user, Message<Message_type> msg) {
+    LOG(__PRETTY_FUNCTION__);
+    auto sv = msg.body
+        | std::ranges::views::split(',')
+        | std::ranges::views::transform([](auto&& rng) {
+            return stoi(std::string(&*rng.begin(), std::ranges::distance(rng)));
+        });
+    std::vector<int> ip_vec(4);
+    auto p = sv.begin();
+    for (auto& x : ip_vec) x = *p++;
+    int p1 = *p++;
+    int p2 = *p++;
+    int port = p1 * 256 + p2;
+    
+    user->write(string_format("200 PORT command successful\n"));
+    user->data_endpoint = 
+        *asio::ip::tcp::resolver(user->context).resolve(string_format("%d.%d.%d.%d", ip_vec[0], ip_vec[1], ip_vec[2], ip_vec[3]),
+        std::to_string(port));
+}
+
+
+
+void handle_list(std::shared_ptr<User> user) {
+    LOG(__PRETTY_FUNCTION__);
+    // TODO specify the default work dir of server
+    std::string work_dir = "/home/zmm/Documents/code/cpp/ftp_server";
+    std::system(string_format("ls -l > %s/ls_out.txt", work_dir.c_str()).c_str());
+    std::ifstream f(string_format("%s/ls_out.txt", work_dir.c_str()));
+    f.seekg(0, std::ios::end);
+    std::string buf(f.tellg(), '\0');
+    f.seekg(0, std::ios::beg);
+    f.read(buf.data(), buf.size());
+    f.close();
+    // TODO push job to server
+    user->write(string_format("150 Connecting to port %d\n", user->data_endpoint.port()));
+    asio::ip::tcp::socket data_socket(user->context, *asio::ip::tcp::resolver(user->context).resolve("127.0.0.1", "20"));
+    data_socket.connect(user->data_endpoint);
+    data_socket.write_some(asio::buffer(buf + '\n'));
+    user->write(string_format("226 ls command ojbk\n"));
+}
+
+
 template <typename T>
 void handle_command(std::shared_ptr<User> user, Message<T> msg) {
     LOG(__PRETTY_FUNCTION__);
@@ -269,9 +321,17 @@ void handle_command(std::shared_ptr<User> user, Message<T> msg) {
     case T::SYST:
         handle_syst(user);
         break;
+    case T::PORT:
+        handle_port(user, msg);
+        break;
+    case T::LIST:
+        handle_list(user);
+        break;
     case T::QUIT:
         user->disconnect();
         break;
+    default:
+        ERROR((int)msg.type, msg.body);
     }
 }
 

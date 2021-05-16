@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 #include <server.hpp>
+#include <ranges>
 
 using namespace std::chrono_literals;
 
@@ -50,6 +51,8 @@ using namespace std::chrono_literals;
 
 // };
 // #include <>
+using namespace std;
+
 int main() {
     asio::error_code ec;
     asio::io_context context;
@@ -98,4 +101,19 @@ int main() {
     std::vector<std::thread> threads(thread_num);
     for (auto& t : threads) t = std::thread([&context]() {context.run();});
     for (auto& t : threads) t.join();
+
+    // vector<int> a{1, 2, 3, 4, 5};
+    // auto even = [](const int& x) {return x % 2 == 0;};
+    // for (int x : a | std::views::filter(even)) {
+    // }
+    // string str{"12,34,tt"};
+    // auto sv = str
+    //     | std::ranges::views::split(',')
+    //     | std::ranges::views::transform([](auto&& rng) {
+    //         return stoi(std::string(&*rng.begin(), ranges::distance(rng)));
+    // });
+    // asio::ip::tcp::resolver res(context);
+    // auto remote_ed = *res.resolve("127.0.0.1", "1234");
+    // auto local_ed = *res.resolve("127.0.0.1", "6666");
+    
 }
