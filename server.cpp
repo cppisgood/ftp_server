@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 #include <server.hpp>
-#include <ranges>
+// #include <ranges>
 
 using namespace std::chrono_literals;
 
@@ -95,6 +95,7 @@ int main() {
     // asio::ip::tcp::resolver res(context);
     // auto ed = *res.resolve("127.0.0.1", "80");
     Server s(context, "127.0.0.1", 21);
+    debug(s.ac.local_endpoint());
     s.start();
     const int thread_num = std::thread::hardware_concurrency();
     LOG(thread_num);

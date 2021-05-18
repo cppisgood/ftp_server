@@ -36,5 +36,14 @@ foreach(x server.zmm cilent.zmm)
     
 endforeach(x)
 
+# add_executable(
+#     tmp.zmm
+#     tmp.cpp
+# )
+# target_link_libraries(
+#     tmp.zmm
+#     asio
+# )
+
 
 # file(GLOB_RE)
