@@ -19,9 +19,7 @@ public:
         A,
         I
     };
-    // std::string buf;
     asio::io_context& context;
-    // asio::ip::tcp::socket socket;
     static constexpr char CRLF[] = "\r\n";
     asio::ip::tcp::endpoint data_endpoint;
     std::string username;
