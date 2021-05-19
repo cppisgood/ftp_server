@@ -13,12 +13,15 @@ enum class Message_type {
     PORT,
     LIST,
     CWD,
+    PWD,
     TYPE,
     RETR,
+    STOR,
+    PASV,
+    SIZE,
 };
 struct Message {
     Message_type type;
-    // std::string header;
     std::string body;
 
     Message() {}
@@ -56,8 +59,12 @@ Message parse(const std::string raw_msg) {
     else if (type == "LIST") msg.type = Message_type::LIST;
     else if (type == "PORT") msg.type = Message_type::PORT;
     else if (type == "CWD") msg.type = Message_type::CWD;
+    else if (type == "PWD") msg.type = Message_type::PWD;
     else if (type == "TYPE") msg.type = Message_type::TYPE;
     else if (type == "RETR") msg.type = Message_type::RETR;
+    else if (type == "STOR") msg.type = Message_type::STOR;
+    else if (type == "PASV") msg.type = Message_type::PASV;
+    else if (type == "SIZE") msg.type = Message_type::SIZE;
     else {
         ERROR(string_format("[error] %s unrecognised type: %s", type.c_str()));
         // TODO
@@ -103,7 +110,7 @@ public:
         LOG(__PRETTY_FUNCTION__);
         socket.async_read_some(asio::buffer(buf), [this, f](asio::error_code ec, std::size_t size) {
             if (ec) {
-                debug(ec.message());
+                ERROR(string_format("have read %d Bytes,error code: 5s", size, ec.message().c_str()));
                 return;
             }
             f(parse(buf));
