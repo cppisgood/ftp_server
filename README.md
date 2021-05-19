@@ -14,6 +14,10 @@ https://datatracker.ietf.org/doc/html/rfc959
 
 https://cr.yp.to/ftp.html
 
+https://datatracker.ietf.org/doc/html/rfc3659
+
+https://datatracker.ietf.org/doc/html/rfc2428
+
 ## TODO
 
 Access control to files
