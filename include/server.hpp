@@ -4,6 +4,7 @@
 #include "user.hpp"
 #include "handler.hpp"
 #include <queue>
+#include <string>
 
 
 class Server {
@@ -11,9 +12,17 @@ public:
     asio::io_context& context;
     asio::ip::tcp::acceptor ac;
 
+    Server(asio::io_context& context_) :
+        context(context_),
+        ac(context_, *asio::ip::tcp::resolver(context_).resolve(server_config::server_ip, server_config::server_port)) {
+        
+    }
     Server(asio::io_context& context_, std::string ip, int port) :
         context(context_),
         ac(context_, *asio::ip::tcp::resolver(context_).resolve(ip, std::to_string(port))) {
+        server_config::server_ip = ip;
+        server_config::server_port = std::to_string(port);
+        
     }
 
     void start() {

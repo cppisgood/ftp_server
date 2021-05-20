@@ -20,6 +20,12 @@ https://datatracker.ietf.org/doc/html/rfc2428
 
 ## TODO
 
-Access control to files
+user data socket listener
+
+code optimization
+
+small bug fix
+
+permission control
 
 user info check

@@ -7,11 +7,13 @@
 #include <ios>
 #include <iterator>
 #include <memory>
+#include <random>
 #include <ranges>
 #include <fstream>
 #include <string>
 #include "asio.hpp"
 #include "server_config.hpp"
+#include "file.hpp"
 
 
 // if file is large than 1MB, split to small part
@@ -48,8 +50,10 @@ void receive_file(asio::ip::tcp::socket& socket, const std::string path) {
         buf.resize(len);
         f.write(buf.data(), buf.size());
     }
-    
+    socket.close();
 }
+
+
 
 void handle_syst(std::shared_ptr<User> user) {
     LOG(__PRETTY_FUNCTION__);
@@ -60,8 +64,8 @@ void handle_port(std::shared_ptr<User> user, Message msg) {
     LOG(__PRETTY_FUNCTION__);
     auto sv = msg.body
         | std::ranges::views::split(',')
-        | std::ranges::views::transform([](auto&& rng) {
-            return stoi(std::string(&*rng.begin(), std::ranges::distance(rng)));
+        | std::ranges::views::transform([](auto&& range) {
+            return stoi(std::string(&*range.begin(), std::ranges::distance(range)));
         });
     std::vector<int> ip_vec(4);
     auto p = sv.begin();
@@ -82,16 +86,18 @@ void handle_list(std::shared_ptr<User> user) {
     auto work_path = server_config::work_path / user->username;
     std::system(string_format("cd %s && ls -al > %s/tmp_files/ls_out.txt", user->current_path.c_str(), work_path.c_str()).c_str());
 
+    user->response(150, string_format("Connecting to port %d", user->data_endpoint.port()));
     send_file(user->get_data_socket(), string_format("%s/tmp_files/ls_out.txt", work_path.c_str()));
-    user->data_socket.close();
     user->response(226, string_format("ls command ojbk"));
 }
 
 std::filesystem::path show_path(std::shared_ptr<User> user) {
+    LOG(__PRETTY_FUNCTION__);
     return (std::filesystem::path("/") / std::filesystem::relative(user->current_path, user->root_path)).lexically_normal();
 }
 
 std::filesystem::path concat_real_path(std::shared_ptr<User> user, std::string path) {
+    LOG(__PRETTY_FUNCTION__);
     std::filesystem::path new_path;
     if (path.front() == '/') new_path = user->root_path / path.substr(1);
     else new_path = user->current_path / path;
@@ -144,8 +150,8 @@ void handle_retr(std::shared_ptr<User> user, Message msg) {
         if (std::filesystem::is_directory(file_path)) {
             user->response(550, string_format("can't open to %s: is not a file", msg.body.c_str()));
         } else {
+            user->response(150, string_format("Connecting to port %d", user->data_endpoint.port()));
             send_file(user->get_data_socket(), file_path);
-            user->data_socket.close();
             user->response(226, "file successfully transed");
         }
     } catch(...) {
@@ -159,8 +165,8 @@ void handle_stor(std::shared_ptr<User> user, Message msg) {
     if (std::filesystem::exists(file_path)) {
         user->response(550, string_format("users %s isn't permitted to overwrite existing files", user->username.c_str()));
     } else {
+        user->response(150, string_format("Connecting to port %d", user->data_endpoint.port()));
         receive_file(user->get_data_socket(), file_path);
-        user->data_socket.close();
         user->response(226, "file successfully transferred");
     }
 }
@@ -172,8 +178,12 @@ void handle_pwd(std::shared_ptr<User> user) {
 
 void handle_pasv(std::shared_ptr<User> user) {
     LOG(__PRETTY_FUNCTION__);
-    // TODO get port from config
+    // TODO get port from config and manage listener
     auto get_port = [] {
+        std::random_device seed;
+        std::mt19937 rng(seed());
+        std::uniform_int_distribution<int> randint(1025, 65535);
+        return randint(rng);
         return 6666;
     };
     user->port_type = User::Port_type::PASV;
@@ -188,8 +198,47 @@ void handle_pasv(std::shared_ptr<User> user) {
 }
 
 void handle_size(std::shared_ptr<User> user, Message msg) {
+    LOG(__PRETTY_FUNCTION__);
     auto file_path = concat_real_path(user, msg.body);
-    user->response(213, string_format("%d", std::filesystem::file_size(file_path)));
+    if (std::filesystem::exists(file_path)) {
+        user->response(213, string_format("%d", std::filesystem::file_size(file_path)));
+    } else {
+        user->response(550, string_format("no such file: %s", msg.body));
+    }
+}
+
+void handle_feat(std::shared_ptr<User> user) {
+    // TODO
+    user->response_nospace(211, "-Features supported\r\n MLSD\r\n211 End");
+    // user->con.write("211-Extensions supported:\r\n");
+}
+
+void handle_mlsd(std::shared_ptr<User> user, Message msg) {
+    auto dir_path = concat_real_path(user, msg.body);
+    if (std::filesystem::exists(dir_path) && std::filesystem::is_directory(dir_path)) {
+
+        user->response(150, "connecting");
+        auto& data_socket = user->get_data_socket();
+
+        std::string data;
+        for (auto const& entry : std::filesystem::directory_iterator(dir_path)) {
+            data += get_path_type(entry);
+            data += get_path_size(entry);
+            data += get_path_modify_time(entry);
+            data += get_path_modify_permission(entry);
+            data += " ";
+            data += entry.path().filename();
+            data += "\r\n";
+        }
+        debug(data);
+
+        data_socket.write_some(asio::buffer(data));
+        data_socket.close();
+
+        user->response(226, "4 matchs ojbk");
+    } else {
+        user->response(501, string_format("no such directory: %s", msg.body));
+    }
 }
 
 void handle_command(std::shared_ptr<User> user, Message msg) {
@@ -228,7 +277,14 @@ void handle_command(std::shared_ptr<User> user, Message msg) {
     case Message_type::SIZE:
         handle_size(user, msg);
         break;
+    case Message_type::FEAT:
+        handle_feat(user);
+        break;
+    case Message_type::MLSD:
+        handle_mlsd(user, msg);
+        break;
     default:
-        ERROR((int)msg.type, msg.body);
+        user->response(502, "command not implemented.");
+        // ERROR((int)msg.type, msg.body);
     }
 }

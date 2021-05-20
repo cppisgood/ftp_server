@@ -19,6 +19,9 @@ enum class Message_type {
     STOR,
     PASV,
     SIZE,
+    FEAT,
+    MLSD,
+    ERROR
 };
 struct Message {
     Message_type type;
@@ -65,8 +68,11 @@ Message parse(const std::string raw_msg) {
     else if (type == "STOR") msg.type = Message_type::STOR;
     else if (type == "PASV") msg.type = Message_type::PASV;
     else if (type == "SIZE") msg.type = Message_type::SIZE;
+    else if (type == "FEAT") msg.type = Message_type::FEAT;
+    else if (type == "MLSD") msg.type = Message_type::MLSD;
     else {
         ERROR(string_format("[error] %s unrecognised type: %s", type.c_str()));
+        msg.type = Message_type::ERROR;
         // TODO
     }
     print("[parse]");

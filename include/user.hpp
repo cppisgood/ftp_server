@@ -25,22 +25,28 @@ public:
         PORT,
         PASV,
     };
-    asio::io_context& context;
     static constexpr char CRLF[] = "\r\n";
+
+    asio::io_context& context;
     asio::ip::tcp::endpoint data_endpoint;
-    std::string username;
     Connection con;
     asio::ip::tcp::socket data_socket;
+    asio::ip::tcp::acceptor ac;
+
+    std::string username;
     std::filesystem::path root_path;
     std::filesystem::path current_path;
+
     Login_status_type status = Login_status_type::WAITING_USER;
     Port_type port_type = Port_type::PORT;
     Trans_type trans_type = Trans_type::A;
+
     std::shared_ptr<User> self;
     User(asio::io_context& context_) :
         context(context_),
         con(context_),
-        data_socket(context) {
+        data_socket(context_),
+        ac(context_) {
     }
 
     Message get_message() {
@@ -51,6 +57,11 @@ public:
     void response(int code, const std::string& msg) {
         LOG(__PRETTY_FUNCTION__);
         con.write(string_format("%d %s%s", code, msg.c_str(), CRLF));
+    }
+
+    void response_nospace(int code, const std::string& msg) {
+        LOG(__PRETTY_FUNCTION__);
+        con.write(string_format("%d%s%s", code, msg.c_str(), CRLF));
     }
 
     asio::ip::tcp::socket& get_socket() {
@@ -76,6 +87,11 @@ public:
             root_path = server_config::default_ftp_path;
         }
         current_path = root_path;
+        auto work_path = server_config::work_path / username / "tmp_files";
+        debug(work_path);
+        if (!std::filesystem::exists(work_path)) {
+            std::filesystem::create_directories(work_path);
+        }
     }
 
     void login() {
@@ -145,21 +161,23 @@ public:
         LOG(__PRETTY_FUNCTION__);
         switch (port_type) {
         case User::Port_type::PORT:
-            response(150, string_format("Connecting to port %d", data_endpoint.port()));
             data_socket = asio::ip::tcp::socket(context, asio::ip::tcp::v4());
             data_socket.set_option(asio::socket_base::reuse_address(true));
             data_socket.bind(*asio::ip::tcp::resolver(context).resolve(server_config::server_ip, server_config::server_data_port));
             data_socket.connect(data_endpoint);
             break;
         case User::Port_type::PASV:
-            response(150, string_format("Connecting to port %d", data_endpoint.port()));
             break;
         }
         return data_socket;
     }
 
     void connect_pasv_data_socket(std::string port) {
-        asio::ip::tcp::acceptor ac(context, *asio::ip::tcp::resolver(context).resolve(server_config::server_ip, port));
+        auto ac = asio::ip::tcp::acceptor(context, asio::ip::tcp::v4());
+        ac.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+        ac.bind(*asio::ip::tcp::resolver(context).resolve(server_config::server_ip, port));
+        ac.listen();
         data_socket = ac.accept();
+        debug(server_config::server_ip, port);
     }
 };
