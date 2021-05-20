@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include "server_config.hpp"
+#include "tools.hpp"
 
 class User;
 void handle_command(std::shared_ptr<User> user, Message msg);
@@ -96,45 +97,49 @@ public:
 
     void login() {
         LOG(__PRETTY_FUNCTION__);
-        auto msg = get_message();
-        switch (msg.type) {
-        case Message_type::USER:
-            if (status == Login_status_type::WAITING_USER) {
-                if (check_username(msg.body)) {
-                    status = Login_status_type::WATTING_PASS;
-                    username = msg.body;
-                    response(331, string_format("user %s ok, password required.", msg.body.c_str()));
+        try {
+            auto msg = get_message();
+            switch (msg.type) {
+            case Message_type::USER:
+                if (status == Login_status_type::WAITING_USER) {
+                    if (check_username(msg.body)) {
+                        status = Login_status_type::WATTING_PASS;
+                        username = msg.body;
+                        response(331, string_format("user %s ok, password required.", msg.body.c_str()));
+                    } else {
+                        response(530, string_format("user %s not found", msg.body.c_str()));
+                    }
                 } else {
-                    response(530, string_format("user %s not found", msg.body.c_str()));
+                    // TODO
                 }
-            } else {
-                // TODO
-            }
-            break;
-        case Message_type::PASS:
-            if (status == Login_status_type::WATTING_PASS) {
-                if (check_password(msg.body)) {
-                    status = Login_status_type::LOGGED;
-                    response(230, string_format("user %s logged in",username.c_str()));
-                    async_wait_command();
-                    // TODO load user info, such as root directory
-                    user_init();
-                    return;
+                break;
+            case Message_type::PASS:
+                if (status == Login_status_type::WATTING_PASS) {
+                    if (check_password(msg.body)) {
+                        status = Login_status_type::LOGGED;
+                        response(230, string_format("user %s logged in",username.c_str()));
+                        async_wait_command();
+                        // TODO load user info, such as root directory
+                        user_init();
+                        return;
+                    } else {
+                        status = Login_status_type::WAITING_USER;
+                        response(530, string_format("login authentication failed"));
+                    }
                 } else {
-                    status = Login_status_type::WAITING_USER;
-                    response(530, string_format("login authentication failed"));
+                    // TODO
                 }
-            } else {
-                // TODO
+                break;
+            case Message_type::SYST:
+                handle_command(shared_from_this(), msg);
+                break;
+            default:
+                response(530, "log first please.");
             }
-            break;
-        case Message_type::SYST:
-            handle_command(shared_from_this(), msg);
-            break;
-        default:
-            response(530, "log first please.");
+            login();
+        } catch(...) {
+            ERROR("remote disconnect on login");
         }
-        login();
     }
 
     void async_wait_command() {
@@ -175,7 +180,7 @@ public:
     void connect_pasv_data_socket(std::string port) {
         auto ac = asio::ip::tcp::acceptor(context, asio::ip::tcp::v4());
         ac.set_option(asio::ip::tcp::acceptor::reuse_address(true));
-        ac.bind(*asio::ip::tcp::resolver(context).resolve(server_config::server_ip, port));
+        ac.bind(*asio::ip::tcp::resolver(context).resolve("0.0.0.0", port));
         ac.listen();
         data_socket = ac.accept();
         debug(server_config::server_ip, port);

@@ -173,7 +173,7 @@ void handle_stor(std::shared_ptr<User> user, Message msg) {
 
 void handle_pwd(std::shared_ptr<User> user) {
     LOG(__PRETTY_FUNCTION__);
-    user->response(257, show_path(user));
+    user->response(257, string_format("\"%s\"", show_path(user).c_str()));
 }
 
 void handle_pasv(std::shared_ptr<User> user) {
@@ -193,7 +193,8 @@ void handle_pasv(std::shared_ptr<User> user) {
         return ch;
     });
     auto port = get_port();
-    user->response(227, string_format("=%s,%d,%d", ip.c_str(), port / 256, port % 256));
+    debug("pasv port", port);
+    user->response(227, string_format("(%s,%d,%d)", ip.c_str(), port / 256, port % 256));
     user->connect_pasv_data_socket(std::to_string(port));
 }
 
@@ -241,6 +242,20 @@ void handle_mlsd(std::shared_ptr<User> user, Message msg) {
     }
 }
 
+void handle_opts(std::shared_ptr<User> user, Message msg) {
+    user->response(504, "no fucking support any options");
+    // user->response(200, "just try everything");
+}
+
+void handle_site(std::shared_ptr<User> user, Message msg) {
+    user->response(214, "no thing to tell you");
+    // user->response(200, "just try everything");
+}
+void handle_noop(std::shared_ptr<User> user) {
+    user->response(200, "QAQ");
+    // user->response(200, "just try everything");
+}
+
 void handle_command(std::shared_ptr<User> user, Message msg) {
     LOG(__PRETTY_FUNCTION__);
     switch (msg.type) {
@@ -282,6 +297,15 @@ void handle_command(std::shared_ptr<User> user, Message msg) {
         break;
     case Message_type::MLSD:
         handle_mlsd(user, msg);
+        break;
+    case Message_type::OPTS:
+        handle_opts(user, msg);
+        break;
+    case Message_type::SITE:
+        handle_site(user, msg);
+        break;
+    case Message_type::NOOP:
+        handle_noop(user);
         break;
     default:
         user->response(502, "command not implemented.");

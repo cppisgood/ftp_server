@@ -17,7 +17,7 @@ std::string get_path_type(std::filesystem::path path) {
     case std::filesystem::file_type::none: ret += "none"; break;
     case std::filesystem::file_type::not_found: ret += "not_found"; break;
     case std::filesystem::file_type::regular: ret += "regular"; break;
-    case std::filesystem::file_type::directory: ret += "directory"; break;
+    case std::filesystem::file_type::directory: ret += "dir"; break;
     case std::filesystem::file_type::block: ret += "block"; break;
     case std::filesystem::file_type::character: ret += "character"; break;
     case std::filesystem::file_type::fifo: ret += "fifo"; break;

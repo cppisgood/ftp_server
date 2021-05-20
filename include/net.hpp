@@ -21,6 +21,9 @@ enum class Message_type {
     SIZE,
     FEAT,
     MLSD,
+    OPTS,
+    SITE,
+    NOOP,
     ERROR
 };
 struct Message {
@@ -70,6 +73,9 @@ Message parse(const std::string raw_msg) {
     else if (type == "SIZE") msg.type = Message_type::SIZE;
     else if (type == "FEAT") msg.type = Message_type::FEAT;
     else if (type == "MLSD") msg.type = Message_type::MLSD;
+    else if (type == "OPTS") msg.type = Message_type::OPTS;
+    else if (type == "NOOP") msg.type = Message_type::NOOP;
+    else if (type == "SITE") msg.type = Message_type::SITE;
     else {
         ERROR(string_format("[error] %s unrecognised type: %s", type.c_str()));
         msg.type = Message_type::ERROR;
