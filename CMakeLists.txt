@@ -13,16 +13,17 @@ add_subdirectory(extern)
 add_subdirectory(include)
 
 add_executable(
-    server.zmm
+    ftp_server
     server.cpp
 )
 
-add_executable(
-    cilent.zmm
-    cilent.cpp
-)
+# add_executable(
+#     cilent.zmm
+#     cilent.cpp
+# )
 
-foreach(x server.zmm cilent.zmm)
+# foreach(x ftp_server cilent.zmm)
+foreach(x ftp_server)
     # target_include_directories(
     #     ${x} PUBLIC
     #     ${PROJECT_SOURCE_DIR}/include
@@ -34,7 +35,7 @@ foreach(x server.zmm cilent.zmm)
         pthread
     )
     
-endforeach(x)
+endforeach()
 
 # add_executable(
 #     tmp.zmm

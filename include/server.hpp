@@ -17,11 +17,11 @@ public:
         ac(context_, *asio::ip::tcp::resolver(context_).resolve("0.0.0.0", server_config::server_port)) {
         
     }
-    Server(asio::io_context& context_, std::string ip, int port) :
+    Server(asio::io_context& context_, std::string ip, std::string port) :
         context(context_),
-        ac(context_, *asio::ip::tcp::resolver(context_).resolve("0.0.0.0", std::to_string(port))) {
+        ac(context_, *asio::ip::tcp::resolver(context_).resolve("0.0.0.0", port)) {
         server_config::server_ip = ip;
-        server_config::server_port = std::to_string(port);
+        server_config::server_port = port;
         
     }
 
