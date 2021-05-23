@@ -5,12 +5,21 @@
 #include "handler.hpp"
 #include <queue>
 #include <string>
-
+#include "server_config.hpp"
 
 class Server {
 public:
     asio::io_context& context;
     asio::ip::tcp::acceptor ac;
+
+    void init() {
+        if (!std::filesystem::exists(server_config::work_path)) {
+            std::filesystem::create_directories(server_config::work_path);
+        }
+        if (!std::filesystem::exists(server_config::default_ftp_path)) {
+            std::filesystem::create_directories(server_config::default_ftp_path);
+        }
+    }
 
     Server(asio::io_context& context_) :
         context(context_),
