@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <server.hpp>
+#include "server_config.hpp"
 
 int main(int argc, char* argv[]) {
     asio::error_code ec;
@@ -22,6 +23,13 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     LOG(ip, port);
+    
+    auto current_path = std::filesystem::current_path();
+    std::filesystem::path relative_path(argv[0]);
+    relative_path = relative_path.parent_path();
+    server_config::work_path = (current_path / relative_path / "work").lexically_normal();
+    server_config::default_ftp_path = (current_path / relative_path / "ftp").lexically_normal();
+
     Server s(context, ip, port);
     s.start();
     const int thread_num = std::thread::hardware_concurrency();
