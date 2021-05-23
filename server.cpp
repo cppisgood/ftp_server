@@ -27,8 +27,8 @@ int main(int argc, char* argv[]) {
     auto current_path = std::filesystem::current_path();
     std::filesystem::path relative_path(argv[0]);
     relative_path = relative_path.parent_path();
-    server_config::work_path = (current_path / relative_path / "work").lexically_normal();
-    server_config::default_ftp_path = (current_path / relative_path / "ftp").lexically_normal();
+    server_config::work_path = (current_path / relative_path / "../work").lexically_normal();
+    server_config::default_ftp_path = (current_path / relative_path / "../ftp").lexically_normal();
 
     Server s(context, ip, port);
     s.start();
